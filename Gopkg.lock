@@ -58,7 +58,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/scylladb/gocqlx"
-  packages = [".","migrate","qb"]
+  packages = [".","qb"]
   revision = "3a3f0a8f1db91aa7bffd04c91e081ef078b0a87a"
 
 [[projects]]
@@ -94,6 +94,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bdf349e89a47ca3743a3a54d3a4e6dd8bd7551e3da03337a245be8fe68794068"
+  inputs-digest = "81b312436821d049e443530709a00170bf57829fb4afec0fed62b6d1594b5b54"
   solver-name = "gps-cdcl"
   solver-version = 1
