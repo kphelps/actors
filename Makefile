@@ -21,7 +21,9 @@ MOCK_FILES=$(addsuffix /mocks.go,$(addprefix mocks/,$(MOCK_PACKAGES)))
 actors_MOCK_INTERFACES= \
 	Actor \
 	ActorContext \
-	ActorRef
+	ActorRef \
+	ReadSideHandler \
+	SequenceTracker
 
 .PHONY: build cover mocks test
 

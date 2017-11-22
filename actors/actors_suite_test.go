@@ -6,6 +6,7 @@ import (
 
 	"github.com/gocql/gocql"
 	"github.com/golang/mock/gomock"
+	"github.com/kphelps/actors/actors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/scylladb/gocqlx"
@@ -30,17 +31,7 @@ func Session() *gocql.Session {
 }
 
 func UpdateSchema() error {
-	cluster := gocql.NewCluster("127.0.0.1")
-	cluster.Timeout = 60 * time.Second
-	session, err := cluster.CreateSession()
-	if err != nil {
-		return err
-	}
-	err = session.Query(`CREATE KEYSPACE IF NOT EXISTS actors_test WITH REPLICATION = {
-		'class': 'SimpleStrategy',
-		'replication_factor': 1
-	}`).Exec()
-	return err
+	return actors.ConfigureCassandraPersistenceProvider("actors_test")
 }
 
 func getKeyspaceMetadata(session *gocql.Session) (*gocql.KeyspaceMetadata, error) {

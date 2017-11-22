@@ -9,12 +9,9 @@ import (
 
 var pp PersistenceProvider
 
-func init() {
-	pp = cassandraPersistenceProvider()
-	err := pp.Initialize()
-	if err != nil {
-		panic(err)
-	}
+func initPersistenceProvider(provider PersistenceProvider) error {
+	pp = provider
+	return pp.Initialize()
 }
 
 type PersistentEvent struct {

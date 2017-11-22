@@ -2,6 +2,7 @@ package actors
 
 import (
 	"reflect"
+	"time"
 
 	"github.com/gocql/gocql"
 	"github.com/golang/protobuf/proto"
@@ -11,11 +12,20 @@ import (
 
 type CassandraPersistenceProvider struct {
 	session        *gocql.Session
+	keyspace       string
 	partitionCount uint64
 }
 
-func cassandraPersistenceProvider() PersistenceProvider {
+func ConfigureCassandraPersistenceProvider(
+	keyspace string,
+) error {
+	provider := cassandraPersistenceProvider(keyspace)
+	return initPersistenceProvider(provider)
+}
+
+func cassandraPersistenceProvider(keyspace string) PersistenceProvider {
 	return &CassandraPersistenceProvider{
+		keyspace:       keyspace,
 		partitionCount: uint64(10),
 	}
 }
@@ -42,7 +52,7 @@ func (c *CassandraPersistenceProvider) Initialize() error {
 		return err
 	}
 
-	err = c.initializeSession()
+	err = c.initializeSession(60 * time.Second)
 	if err != nil {
 		return err
 	}
@@ -52,13 +62,19 @@ func (c *CassandraPersistenceProvider) Initialize() error {
 		return err
 	}
 
-	return nil
+	err = c.createSequenceIDTable()
+	if err != nil {
+		return err
+	}
+
+	return c.initializeSession(3 * time.Second)
 }
 
-func (c *CassandraPersistenceProvider) initializeSession() error {
+func (c *CassandraPersistenceProvider) initializeSession(timeout time.Duration) error {
 	cluster := gocql.NewCluster("127.0.0.1")
-	cluster.Keyspace = "actors"
+	cluster.Keyspace = c.keyspace
 	cluster.Consistency = gocql.Quorum
+	cluster.Timeout = timeout
 	session, err := cluster.CreateSession()
 	c.session = session
 	return err
@@ -66,6 +82,7 @@ func (c *CassandraPersistenceProvider) initializeSession() error {
 
 func (c *CassandraPersistenceProvider) connectWithoutKeyspace() (*gocql.Session, error) {
 	cluster := gocql.NewCluster("127.0.0.1")
+	cluster.Timeout = 60 * time.Second
 	return cluster.CreateSession()
 }
 
@@ -76,7 +93,7 @@ func (c *CassandraPersistenceProvider) createKeyspace() error {
 	}
 
 	err = session.Query(
-		`CREATE KEYSPACE IF NOT EXISTS actors
+		`CREATE KEYSPACE IF NOT EXISTS ` + c.keyspace + `
 		WITH REPLICATION = {
 			'class': 'SimpleStrategy',
 			'replication_factor': 1
@@ -95,6 +112,16 @@ func (c *CassandraPersistenceProvider) createActorEventsTable() error {
 			event blob,
 			event_type text,
 			PRIMARY KEY ((actor_id, partition_id), sequence_id)
+		)`,
+	).Exec()
+}
+
+func (c *CassandraPersistenceProvider) createSequenceIDTable() error {
+	return c.session.Query(
+		`CREATE TABLE IF NOT EXISTS sequence_ids (
+			name text,
+			sequence_id bigint,
+			PRIMARY KEY (name)
 		)`,
 	).Exec()
 }
